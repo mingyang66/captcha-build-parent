@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>滑动解锁验证码</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            padding: 36px 32px 28px;
+            width: 440px;
+            max-width: 100%;
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .card-header h2 {
+            font-size: 22px;
+            color: #333;
+            font-weight: 700;
+        }
+        .card-header p {
+            font-size: 13px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        /* 导航链接 */
+        .nav-link {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .nav-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .nav-link a:hover { text-decoration: underline; }
+
+        /* 图片区域 */
+        .image-area {
+            position: relative;
+            display: block;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #e2e2e2;
+            user-select: none;
+            width: fit-content;
+            transition: border-color 0.2s;
+        }
+        .image-area:hover { border-color: #667eea; }
+        .image-area img {
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        /* 滑块拼图块（绝对定位在背景图上） */
+        .slider-piece {
+            position: absolute;
+            left: 0;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+            z-index: 2;
+        }
+
+        /* 滑轨区域 */
+        .slider-track {
+            position: relative;
+            margin: 16px auto 0;
+            width: 320px;
+            height: 40px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 滑轨填充条 */
+        .slider-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 20px 0 0 20px;
+            width: 0;
+            transition: none;
+            z-index: 1;
+        }
+        .slider-fill.success {
+            background: linear-gradient(135deg, #34d399, #059669);
+        }
+        .slider-fill.fail {
+            background: linear-gradient(135deg, #f87171, #dc2626);
+        }
+
+        /* 滑轨提示文字 */
+        .slider-hint {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: #aaa;
+            letter-spacing: 2px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 滑块按钮 */
+        .slider-thumb {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 40px;
+            height: 40px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: grab;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: none;
+            touch-action: none;
+        }
+        .slider-thumb:active { cursor: grabbing; }
+        .slider-thumb svg {
+            width: 18px;
+            height: 18px;
+            fill: #667eea;
+        }
+        .slider-thumb.success svg { fill: #059669; }
+        .slider-thumb.fail svg { fill: #dc2626; }
+
+        /* 状态提示 */
+        .status {
+            text-align: center;
+            font-size: 13px;
+            color: #aaa;
+            margin: 8px 0 4px;
+            min-height: 20px;
+        }
+
+        /* 按钮行 */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-refresh { background: #f0f4ff; color: #4a5acf; }
+        .btn-refresh:hover { background: #dfe6ff; }
+
+        /* 结果提示 */
+        .toast {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            0%   { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .toast.show   { display: block; }
+        .toast.ok     { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+        .toast.err    { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+        /* 加载遮罩 */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            z-index: 10;
+        }
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="nav-link">
+        <a href="index.html">&larr; 返回文字点选验证码</a>
+    </div>
+
+    <div class="card-header">
+        <h2>滑动解锁验证码</h2>
+        <p>请拖动下方滑块，将拼图块移动到缺口位置</p>
+    </div>
+
+    <div style="text-align:center;">
+        <div class="image-area" id="imageArea">
+            <img id="bgImg" src="" alt="背景图" width="320" height="160"/>
+            <img id="pieceImg" class="slider-piece" src="" alt="滑块"/>
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 滑轨 -->
+    <div class="slider-track" id="sliderTrack">
+        <div class="slider-hint" id="sliderHint">&gt;&gt;&gt; 请向右滑动 &gt;&gt;&gt;</div>
+        <div class="slider-fill" id="sliderFill"></div>
+        <div class="slider-thumb" id="sliderThumb">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+    </div>
+
+    <div class="status" id="statusText"></div>
+
+    <div class="btn-row">
+        <button class="btn btn-refresh" id="refreshBtn">换一个</button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // ── 常量 ──
+    const API = 'http://127.0.0.1:8080/captcha/slider';
+    const TRACK_WIDTH = 320;
+    const THUMB_SIZE = 40;
+    const MAX_SLIDE = TRACK_WIDTH - THUMB_SIZE;
+
+    // ── 状态 ──
+    let captchaId = null;
+    let pieceY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let currentX = 0;
+    let verified = false;
+
+    // ── DOM ──
+    const bgImg       = document.getElementById('bgImg');
+    const pieceImg    = document.getElementById('pieceImg');
+    const loadingEl   = document.getElementById('loadingOverlay');
+    const sliderTrack = document.getElementById('sliderTrack');
+    const sliderFill  = document.getElementById('sliderFill');
+    const sliderThumb = document.getElementById('sliderThumb');
+    const sliderHint  = document.getElementById('sliderHint');
+    const statusText  = document.getElementById('statusText');
+    const toast       = document.getElementById('toast');
+    const refreshBtn  = document.getElementById('refreshBtn');
+
+    // ── 工具函数 ──
+    function showLoading(show) {
+        loadingEl.style.display = show ? 'flex' : 'none';
+    }
+
+    function showToast(msg, type) {
+        toast.textContent = msg;
+        toast.className = 'toast show ' + type;
+    }
+
+    function hideToast() {
+        toast.className = 'toast';
+    }
+
+    function resetSlider() {
+        currentX = 0;
+        sliderThumb.style.left = '0px';
+        sliderFill.style.width = '0px';
+        sliderFill.className = 'slider-fill';
+        sliderThumb.className = 'slider-thumb';
+        sliderHint.style.opacity = '1';
+        pieceImg.style.left = '0px';
+        verified = false;
+    }
+
+    // ── 加载验证码 ──
+    async function loadCaptcha() {
+        hideToast();
+        resetSlider();
+        showLoading(true);
+        statusText.textContent = '';
+
+        try {
+            const resp = await fetch(API + '/generate');
+            const json = await resp.json();
+
+            if (json.code === 200 && json.data) {
+                const d = json.data;
+                captchaId = d.captchaId;
+                pieceY = d.y;
+
+                bgImg.src = d.backgroundImage;
+                pieceImg.src = d.sliderImage;
+
+                // 设置滑块拼图块的垂直位置
+                // 需要考虑图片显示尺寸与自然尺寸的比例
+                bgImg.onload = function() {
+                    const scaleY = bgImg.clientHeight / bgImg.naturalHeight;
+                    pieceImg.style.top = (pieceY * scaleY) + 'px';
+                    // 拼图块宽度也需要按比例缩放
+                    const scaleX = bgImg.clientWidth / bgImg.naturalWidth;
+                    pieceImg.style.width = (56 * scaleX) + 'px'; // PIECE_SIZE(44) + KNOB_RADIUS*2(12) = 56
+                    pieceImg.style.height = (56 * scaleY) + 'px';
+                };
+
+                statusText.textContent = '拖动下方滑块完成验证';
+            } else {
+                showToast(json.message || '服务器异常', 'err');
+            }
+        } catch (e) {
+            showToast('无法连接到服务器', 'err');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // ── 拖拽逻辑 ──
+    function onDragStart(e) {
+        if (verified || !captchaId) return;
+        e.preventDefault();
+
+        isDragging = true;
+        startX = (e.touches ? e.touches[0].clientX : e.clientX) - currentX;
+        sliderHint.style.opacity = '0';
+        sliderThumb.style.cursor = 'grabbing';
+    }
+
+    function onDragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let newX = clientX - startX;
+
+        // 限制范围
+        if (newX < 0) newX = 0;
+        if (newX > MAX_SLIDE) newX = MAX_SLIDE;
+
+        currentX = newX;
+        sliderThumb.style.left = currentX + 'px';
+        sliderFill.style.width = (currentX + THUMB_SIZE / 2) + 'px';
+
+        // 同步移动拼图块（考虑图片缩放比例）
+        const scaleX = bgImg.clientWidth / bgImg.naturalWidth;
+        pieceImg.style.left = (currentX * scaleX) + 'px';
+    }
+
+    async function onDragEnd(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        sliderThumb.style.cursor = 'grab';
+
+        if (!captchaId || verified) return;
+
+        // 计算实际在图片上的X坐标
+        const scaleX = bgImg.clientWidth / bgImg.naturalWidth;
+        const actualX = Math.round(currentX * scaleX);
+
+        statusText.textContent = '验证中...';
+
+        try {
+            const resp = await fetch(API + '/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ captchaId: captchaId, x: actualX })
+            });
+            const json = await resp.json();
+
+            if (json.code === 200) {
+                verified = true;
+                sliderFill.classList.add('success');
+                sliderThumb.classList.add('success');
+                showToast(json.message || '验证通过！', 'ok');
+                statusText.textContent = '验证成功';
+                setTimeout(loadCaptcha, 2000);
+            } else {
+                sliderFill.classList.add('fail');
+                sliderThumb.classList.add('fail');
+                showToast(json.message || '验证失败', 'err');
+                statusText.textContent = '验证失败，请重试';
+                // 1秒后重置滑块
+                setTimeout(function() {
+                    resetSlider();
+                    statusText.textContent = '拖动下方滑块完成验证';
+                }, 800);
+            }
+        } catch (e) {
+            showToast('网络错误，请重试', 'err');
+            resetSlider();
+        }
+    }
+
+    // ── 事件绑定 ──
+    // 鼠标事件
+    sliderThumb.addEventListener('mousedown', onDragStart);
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+
+    // 触摸事件（移动端）
+    sliderThumb.addEventListener('touchstart', onDragStart, { passive: false });
+    document.addEventListener('touchmove', onDragMove, { passive: false });
+    document.addEventListener('touchend', onDragEnd);
+
+    refreshBtn.addEventListener('click', loadCaptcha);
+
+    // ── 初始化 ──
+    loadCaptcha();
+})();
+</script>
+</body>
+</html>
