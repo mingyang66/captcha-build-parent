@@ -17,9 +17,9 @@
 
 ```xml
 <dependency>
-    <groupId>com.emily.captcha</groupId>
+    <groupId>io.github.mingyang66</groupId>
     <artifactId>captcha-spring-boot-starter</artifactId>
-    <version>1.0</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
