@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>旋转验证码</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            padding: 36px 32px 28px;
+            width: 440px;
+            max-width: 100%;
+        }
+
+        .card-header { text-align: center; margin-bottom: 24px; }
+        .card-header h2 { font-size: 22px; color: #333; font-weight: 700; }
+        .card-header p { font-size: 13px; color: #999; margin-top: 4px; }
+
+        .nav-links {
+            text-align: center; margin-bottom: 16px;
+            display: flex; gap: 16px; justify-content: center;
+        }
+        .nav-links a { color: #667eea; text-decoration: none; font-size: 13px; font-weight: 600; }
+        .nav-links a:hover { text-decoration: underline; }
+
+        /* ===== 圆形图片区域 ===== */
+        .rotate-area {
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+            margin: 0 auto 16px;
+            width: 260px; height: 260px;
+        }
+
+        .rotate-img-wrapper {
+            position: relative;
+            width: 200px; height: 200px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid #e2e2e2;
+            user-select: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .rotate-img-wrapper.dragging { border-color: #667eea; box-shadow: 0 0 16px rgba(102,126,234,0.3); }
+        .rotate-img-wrapper.success { border-color: #059669; box-shadow: 0 0 20px rgba(5,150,105,0.4); }
+        .rotate-img-wrapper.fail    { border-color: #dc2626; box-shadow: 0 0 20px rgba(220,38,38,0.4); }
+
+        .rotate-img-wrapper img {
+            display: block; width: 100%; height: 100%;
+            user-select: none; -webkit-user-drag: none;
+            will-change: transform;
+        }
+
+        /* ===== 旋转控制环 ===== */
+        .rotate-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px dashed transparent;
+            cursor: grab;
+            z-index: 2;
+            transition: border-color 0.2s;
+        }
+        .rotate-ring:hover { border-color: rgba(102,126,234,0.3); }
+        .rotate-ring.dragging { cursor: grabbing; border-color: rgba(102,126,234,0.5); }
+
+        /* 旋转手柄 */
+        .rotate-handle {
+            position: absolute;
+            width: 20px; height: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            pointer-events: none;
+            z-index: 3;
+            transition: transform 0.1s;
+        }
+        .rotate-handle::after {
+            content: '';
+            position: absolute; inset: 3px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+        }
+
+        /* ===== 角度进度条 ===== */
+        .angle-bar-wrap {
+            margin: 0 auto 12px;
+            width: 200px; height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .angle-bar {
+            height: 100%; width: 0;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.05s linear;
+        }
+        .angle-bar.success { background: linear-gradient(90deg, #34d399, #059669); }
+        .angle-bar.fail    { background: linear-gradient(90deg, #f87171, #dc2626); }
+
+        .angle-display {
+            text-align: center; font-size: 13px; color: #888;
+            margin-bottom: 8px; font-weight: 600; min-height: 20px;
+        }
+
+        .status {
+            text-align: center; font-size: 13px; color: #aaa;
+            margin: 4px 0; min-height: 20px;
+        }
+
+        /* ===== 按钮 ===== */
+        .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+        .btn {
+            flex: 1; padding: 12px 0; border: none; border-radius: 10px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; letter-spacing: 0.5px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-refresh { background: #f0f4ff; color: #4a5acf; }
+        .btn-refresh:hover { background: #dfe6ff; }
+        .btn-verify { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .btn-verify:hover { opacity: 0.9; }
+        .btn-verify:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ===== Toast ===== */
+        .toast {
+            margin-top: 16px; padding: 14px 16px; border-radius: 10px;
+            font-size: 14px; font-weight: 600; text-align: center;
+            display: none; animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            0%   { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .toast.show { display: block; }
+        .toast.ok   { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+        .toast.err  { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+        /* ===== Loading ===== */
+        .loading-overlay {
+            position: absolute; inset: 0;
+            background: rgba(255,255,255,0.7);
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; z-index: 10;
+        }
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid #e0e0e0; border-top-color: #667eea;
+            border-radius: 50%; animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== 验证成功/失败动画 ===== */
+        @keyframes successPulse {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes failShake {
+            0%, 100% { transform: translateX(0); }
+            20%      { transform: translateX(-8px); }
+            40%      { transform: translateX(8px); }
+            60%      { transform: translateX(-6px); }
+            80%      { transform: translateX(6px); }
+        }
+        .animate-success { animation: successPulse 0.5s ease; }
+        .animate-fail    { animation: failShake 0.4s ease; }
+
+        /* 成功对勾 / 失败叉号覆盖层 */
+        .result-overlay {
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 5; pointer-events: none;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .result-overlay.show { opacity: 1; }
+        .result-overlay.ok  { background: rgba(5,150,105,0.3); }
+        .result-overlay.err { background: rgba(220,38,38,0.3); }
+        .result-overlay svg { width: 60px; height: 60px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="nav-links">
+        <a href="index.html">&larr; 文字点选</a>
+        <a href="slider.html">&larr; 滑动解锁</a>
+    </div>
+
+    <div class="card-header">
+        <h2>旋转验证码</h2>
+        <p>请拖动圆环将图片旋转到正确方向（箭头朝上）</p>
+    </div>
+
+    <div class="rotate-area" id="rotateArea">
+        <div class="rotate-img-wrapper" id="imgWrapper">
+            <img id="captchaImg" src="" alt="旋转验证码"/>
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner"></div>
+            </div>
+            <!-- 结果覆盖层 -->
+            <div class="result-overlay" id="resultOverlay">
+                <svg id="resultIcon" viewBox="0 0 24 24"></svg>
+            </div>
+        </div>
+        <div class="rotate-ring" id="rotateRing">
+            <div class="rotate-handle" id="rotateHandle"></div>
+        </div>
+    </div>
+
+    <div class="angle-bar-wrap"><div class="angle-bar" id="angleBar"></div></div>
+    <div class="angle-display" id="angleDisplay">当前旋转: 0°</div>
+    <div class="status" id="statusText"></div>
+
+    <div class="btn-row">
+        <button class="btn btn-refresh" id="refreshBtn">换一个</button>
+        <button class="btn btn-verify" id="verifyBtn">验证</button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var API = 'http://127.0.0.1:8080/captcha/rotate';
+
+    var captchaId = null;
+    var currentAngle = 0;
+    var isDragging = false;
+    var startMouseAngle = 0;
+    var startRotation = 0;
+    var verified = false;
+
+    // DOM
+    var captchaImg    = document.getElementById('captchaImg');
+    var imgWrapper    = document.getElementById('imgWrapper');
+    var rotateRing    = document.getElementById('rotateRing');
+    var rotateHandle  = document.getElementById('rotateHandle');
+    var rotateArea    = document.getElementById('rotateArea');
+    var loadingEl     = document.getElementById('loadingOverlay');
+    var angleDisplay  = document.getElementById('angleDisplay');
+    var angleBar      = document.getElementById('angleBar');
+    var statusText    = document.getElementById('statusText');
+    var toast         = document.getElementById('toast');
+    var verifyBtn     = document.getElementById('verifyBtn');
+    var refreshBtn    = document.getElementById('refreshBtn');
+    var resultOverlay = document.getElementById('resultOverlay');
+    var resultIcon    = document.getElementById('resultIcon');
+
+    function showLoading(show) { loadingEl.style.display = show ? 'flex' : 'none'; }
+
+    function showToast(msg, type) {
+        toast.textContent = msg;
+        toast.className = 'toast show ' + type;
+    }
+    function hideToast() { toast.className = 'toast'; }
+
+    /**
+     * 更新手柄位置和角度显示
+     * 手柄始终在圆环边缘，跟随当前旋转角度
+     */
+    function updateVisuals() {
+        // 图片旋转
+        captchaImg.style.transform = 'rotate(' + currentAngle + 'deg)';
+
+        // 手柄位置：在圆环顶部(12点钟方向)按currentAngle旋转
+        var ringSize = rotateRing.offsetWidth || 260;
+        var r = ringSize / 2;
+        // 从12点钟方向开始（-90度），加上当前旋转角
+        var rad = (currentAngle - 90) * Math.PI / 180;
+        var hx = r + r * Math.cos(rad);
+        var hy = r + r * Math.sin(rad);
+        rotateHandle.style.left = hx + 'px';
+        rotateHandle.style.top  = hy + 'px';
+        rotateHandle.style.transform = 'translate(-50%, -50%)';
+
+        // 角度显示 & 进度条
+        var norm = ((Math.round(currentAngle) % 360) + 360) % 360;
+        angleDisplay.textContent = '当前旋转: ' + norm + '°';
+        angleBar.style.width = (norm / 360 * 100) + '%';
+    }
+
+    function resetState() {
+        currentAngle = 0;
+        verified = false;
+        imgWrapper.classList.remove('success', 'fail', 'dragging', 'animate-success', 'animate-fail');
+        rotateRing.classList.remove('dragging');
+        angleBar.classList.remove('success', 'fail');
+        resultOverlay.classList.remove('show', 'ok', 'err');
+        updateVisuals();
+        hideToast();
+        statusText.textContent = '';
+        verifyBtn.disabled = false;
+    }
+
+    // 加载验证码
+    async function loadCaptcha() {
+        resetState();
+        showLoading(true);
+        statusText.textContent = '';
+
+        try {
+            var resp = await fetch(API + '/generate');
+            var json = await resp.json();
+
+            if (json.code === 200 && json.data) {
+                captchaId = json.data.captchaId;
+                captchaImg.src = json.data.image;
+                statusText.textContent = '拖动圆环旋转图片，使箭头朝上';
+            } else {
+                showToast(json.message || '服务器异常', 'err');
+            }
+        } catch (e) {
+            showToast('无法连接到服务器', 'err');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // 计算鼠标/触摸相对于圆心的角度（度）
+    function getMouseAngle(clientX, clientY) {
+        var rect = rotateArea.getBoundingClientRect();
+        var cx = rect.left + rect.width / 2;
+        var cy = rect.top + rect.height / 2;
+        return Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
+    }
+
+    // ===== 拖拽逻辑 =====
+    function onDragStart(e) {
+        if (verified || !captchaId) return;
+        e.preventDefault();
+        isDragging = true;
+        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        startMouseAngle = getMouseAngle(clientX, clientY);
+        startRotation = currentAngle;
+        rotateRing.classList.add('dragging');
+        imgWrapper.classList.add('dragging');
+    }
+
+    function onDragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        var mouseAngle = getMouseAngle(clientX, clientY);
+        var delta = mouseAngle - startMouseAngle;
+        currentAngle = startRotation + delta;
+        updateVisuals();
+    }
+
+    function onDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        rotateRing.classList.remove('dragging');
+        imgWrapper.classList.remove('dragging');
+        // 规范化到 0~360
+        currentAngle = ((currentAngle % 360) + 360) % 360;
+        updateVisuals();
+    }
+
+    // ===== 验证 =====
+    async function doVerify() {
+        if (!captchaId || verified) return;
+
+        verifyBtn.disabled = true;
+        statusText.textContent = '验证中...';
+
+        var userAngle = Math.round(((currentAngle % 360) + 360) % 360);
+
+        try {
+            var resp = await fetch(API + '/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ captchaId: captchaId, angle: userAngle })
+            });
+            var json = await resp.json();
+
+            if (json.code === 200) {
+                verified = true;
+                // 成功视觉反馈
+                imgWrapper.classList.add('success', 'animate-success');
+                angleBar.classList.add('success');
+                resultOverlay.classList.add('show', 'ok');
+                resultIcon.innerHTML = '<path fill="#059669" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>';
+                showToast(json.message || '验证通过！', 'ok');
+                statusText.textContent = '验证成功';
+                setTimeout(loadCaptcha, 2000);
+            } else {
+                // 失败视觉反馈
+                imgWrapper.classList.add('fail', 'animate-fail');
+                angleBar.classList.add('fail');
+                resultOverlay.classList.add('show', 'err');
+                resultIcon.innerHTML = '<path fill="#dc2626" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>';
+                showToast(json.message || '验证失败', 'err');
+                statusText.textContent = '验证失败，请重试';
+                // 1秒后移除失败效果
+                setTimeout(function() {
+                    imgWrapper.classList.remove('fail', 'animate-fail');
+                    angleBar.classList.remove('fail');
+                    resultOverlay.classList.remove('show', 'err');
+                    verifyBtn.disabled = false;
+                }, 1000);
+            }
+        } catch (e) {
+            showToast('网络错误，请重试', 'err');
+            verifyBtn.disabled = false;
+        }
+    }
+
+    // ===== 事件绑定 =====
+    rotateRing.addEventListener('mousedown', onDragStart);
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+    rotateRing.addEventListener('touchstart', onDragStart, { passive: false });
+    document.addEventListener('touchmove', onDragMove, { passive: false });
+    document.addEventListener('touchend', onDragEnd);
+    verifyBtn.addEventListener('click', doVerify);
+    refreshBtn.addEventListener('click', loadCaptcha);
+
+    // 初始化
+    loadCaptcha();
+})();
+</script>
+</body>
+</html>
