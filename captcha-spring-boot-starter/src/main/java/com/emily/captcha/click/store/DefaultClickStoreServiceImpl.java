@@ -2,7 +2,7 @@ package com.emily.captcha.click.store;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-public class DefaultCaptchaSessionStoreServiceImpl implements CaptchaSessionStoreService {
+public class DefaultClickStoreServiceImpl implements ClickStoreService {
     /**
      * 存储验证码会话数据：captchaId -> CaptchaSession
      */

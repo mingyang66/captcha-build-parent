@@ -4,7 +4,7 @@ import com.emily.captcha.CaptchaProperties;
 import com.emily.captcha.click.model.ClickCaptcha;
 import com.emily.captcha.click.model.ClickPoint;
 import com.emily.captcha.click.store.CaptchaSession;
-import com.emily.captcha.click.store.CaptchaSessionStoreService;
+import com.emily.captcha.click.store.ClickStoreService;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -39,11 +39,11 @@ public class ClickCaptchaService {
      * 验证码配置属性
      */
     private final CaptchaProperties properties;
-    private final CaptchaSessionStoreService captchaStoreService;
+    private final ClickStoreService clickStoreService;
 
-    public ClickCaptchaService(CaptchaProperties properties, CaptchaSessionStoreService captchaStoreService) {
+    public ClickCaptchaService(CaptchaProperties properties, ClickStoreService clickStoreService) {
         this.properties = properties;
-        this.captchaStoreService = captchaStoreService;
+        this.clickStoreService = clickStoreService;
     }
 
     /**
@@ -52,10 +52,10 @@ public class ClickCaptchaService {
      * @return Captcha 包含 captchaId、Base64 图片、提示文字
      */
     public ClickCaptcha generate() {
-        int charCount = properties.getCharCount();
-        int targetCount = properties.getTargetCount();
-        int width = properties.getWidth();
-        int height = properties.getHeight();
+        int charCount = properties.getClick().getCharCount();
+        int targetCount = properties.getClick().getTargetCount();
+        int width = properties.getClick().getWidth();
+        int height = properties.getClick().getHeight();
 
         // 1. 从汉字池中随机选取 charCount 个不重复汉字
         List<Character> chars = pickRandomChars(charCount);
@@ -80,8 +80,8 @@ public class ClickCaptchaService {
         }
 
         // 6. 存入内存（带过期时间戳）
-        long expireAt = System.currentTimeMillis() + properties.getExpiryTime().toMillis();
-        captchaStoreService.put(captchaId, new CaptchaSession(targetChars, targetPoints, expireAt));
+        long expireAt = System.currentTimeMillis() + properties.getClick().getExpiryTime().toMillis();
+        clickStoreService.put(captchaId, new CaptchaSession(targetChars, targetPoints, expireAt));
 
         // 7. 图片编码为 Base64
         String base64 = encodeBase64(image);
@@ -109,7 +109,7 @@ public class ClickCaptchaService {
             return false;
         }
         //1. 从会话存储中移除验证码会话数据
-        CaptchaSession session = captchaStoreService.remove(captchaId);
+        CaptchaSession session = clickStoreService.remove(captchaId);
         if (session == null) {
             return false;
         }
@@ -123,7 +123,7 @@ public class ClickCaptchaService {
             return false;
         }
         //4. 检查每个点击目标的坐标是否在容差范围内
-        int tolerance = properties.getTolerance();
+        int tolerance = properties.getClick().getTolerance();
         for (int i = 0; i < targets.size(); i++) {
             ClickPoint expected = targets.get(i);
             ClickPoint actual = clicks.get(i);
@@ -142,7 +142,7 @@ public class ClickCaptchaService {
      */
     public void invalidate(String captchaId) {
         if (captchaId != null) {
-            captchaStoreService.remove(captchaId);
+            clickStoreService.remove(captchaId);
         }
     }
 
@@ -165,7 +165,7 @@ public class ClickCaptchaService {
      * 返回 List of int[]{centerX, centerY}
      */
     private List<int[]> computePositions(int charCount, int width, int height) {
-        int fontSizeMax = properties.getFontSizeMax();
+        int fontSizeMax = properties.getClick().getFontSizeMax();
         // 左右边距
         int padTop = fontSizeMax + 8; // 顶部留出空间（后续可用于绘制提示区域，但提示不在图片内）
         int padBottom = fontSizeMax / 2;
@@ -226,8 +226,8 @@ public class ClickCaptchaService {
 
         // 绘制汉字
         Random rnd = ThreadLocalRandom.current();
-        int fontSizeMin = properties.getFontSizeMin();
-        int fontSizeMax = properties.getFontSizeMax();
+        int fontSizeMin = properties.getClick().getFontSizeMin();
+        int fontSizeMax = properties.getClick().getFontSizeMax();
 
         for (int i = 0; i < chars.size(); i++) {
             int fontSize = fontSizeMin + rnd.nextInt(Math.max(1, fontSizeMax - fontSizeMin + 1));
@@ -282,7 +282,7 @@ public class ClickCaptchaService {
      */
     private void drawNoiseLines(Graphics2D g2d, int width, int height) {
         Random rnd = ThreadLocalRandom.current();
-        for (int i = 0; i < properties.getNoiseLineCount(); i++) {
+        for (int i = 0; i < properties.getClick().getNoiseLineCount(); i++) {
             g2d.setColor(new Color(rnd.nextInt(200), rnd.nextInt(200), rnd.nextInt(200), 120));
             g2d.setStroke(new BasicStroke(1 + rnd.nextFloat()));
             g2d.drawLine(rnd.nextInt(width), rnd.nextInt(height),
@@ -295,7 +295,7 @@ public class ClickCaptchaService {
      */
     private void drawNoisePoints(Graphics2D g2d, int width, int height) {
         Random rnd = ThreadLocalRandom.current();
-        for (int i = 0; i < properties.getNoisePointCount(); i++) {
+        for (int i = 0; i < properties.getClick().getNoisePointCount(); i++) {
             g2d.setColor(new Color(rnd.nextInt(220), rnd.nextInt(220), rnd.nextInt(220)));
             int size = 1 + rnd.nextInt(3);
             g2d.fillOval(rnd.nextInt(width), rnd.nextInt(height), size, size);

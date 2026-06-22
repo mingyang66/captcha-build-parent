@@ -1,8 +1,11 @@
 package com.emily.captcha;
 
 import com.emily.captcha.click.service.ClickCaptchaService;
-import com.emily.captcha.click.store.CaptchaSessionStoreService;
-import com.emily.captcha.click.store.DefaultCaptchaSessionStoreServiceImpl;
+import com.emily.captcha.click.store.ClickStoreService;
+import com.emily.captcha.click.store.DefaultClickStoreServiceImpl;
+import com.emily.captcha.slider.service.SliderCaptchaService;
+import com.emily.captcha.slider.store.DefaultSliderStoreServiceImpl;
+import com.emily.captcha.slider.store.SliderStoreService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,14 +26,25 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class CaptchaAutoConfiguration {
 
     @Bean
-    public ClickCaptchaService clickCaptchaService(CaptchaProperties properties, CaptchaSessionStoreService captchaStoreService) {
-        return new ClickCaptchaService(properties, captchaStoreService);
+    public ClickCaptchaService clickCaptchaService(CaptchaProperties properties, ClickStoreService clickStoreService) {
+        return new ClickCaptchaService(properties, clickStoreService);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public CaptchaSessionStoreService captchaSessionStoreService() {
-        return new DefaultCaptchaSessionStoreServiceImpl();
+    public ClickStoreService captchaSessionStoreService() {
+        return new DefaultClickStoreServiceImpl();
+    }
+
+    @Bean
+    public SliderCaptchaService sliderCaptchaService(CaptchaProperties properties, SliderStoreService sliderStoreService) {
+        return new SliderCaptchaService(properties, sliderStoreService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public SliderStoreService sliderStoreService() {
+        return new DefaultSliderStoreServiceImpl();
     }
 
     /**
@@ -40,15 +54,19 @@ public class CaptchaAutoConfiguration {
     @EnableScheduling
     static class CaptchaCleanupConfiguration {
 
-        private final CaptchaSessionStoreService storeService;
+        private final ClickStoreService storeService;
+        private final SliderStoreService sliderStoreService;
 
-        CaptchaCleanupConfiguration(CaptchaSessionStoreService storeService) {
+        CaptchaCleanupConfiguration(ClickStoreService storeService,
+                                    SliderStoreService sliderStoreService) {
             this.storeService = storeService;
+            this.sliderStoreService = sliderStoreService;
         }
 
         @Scheduled(fixedDelay = 60_000)
         public void cleanExpiredCaptcha() {
             storeService.cleanExpired();
+            sliderStoreService.cleanExpired();
         }
     }
 }

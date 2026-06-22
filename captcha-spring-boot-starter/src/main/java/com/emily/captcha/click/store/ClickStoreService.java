@@ -1,6 +1,6 @@
 package com.emily.captcha.click.store;
 
-public interface CaptchaSessionStoreService {
+public interface ClickStoreService {
     /**
      * 存储key-value
      */
