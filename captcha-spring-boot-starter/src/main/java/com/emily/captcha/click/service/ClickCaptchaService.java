@@ -3,6 +3,8 @@ package com.emily.captcha.click.service;
 import com.emily.captcha.CaptchaProperties;
 import com.emily.captcha.click.model.ClickCaptcha;
 import com.emily.captcha.click.model.ClickPoint;
+import com.emily.captcha.click.store.CaptchaSession;
+import com.emily.captcha.click.store.CaptchaSessionStoreService;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -10,7 +12,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -35,16 +36,14 @@ public class ClickCaptchaService {
     };
 
     /**
-     * 存储验证码会话数据：captchaId -> CaptchaSession
-     */
-    private final ConcurrentHashMap<String, CaptchaSession> store = new ConcurrentHashMap<>();
-    /**
      * 验证码配置属性
      */
     private final CaptchaProperties properties;
+    private final CaptchaSessionStoreService captchaStoreService;
 
-    public ClickCaptchaService(CaptchaProperties properties) {
+    public ClickCaptchaService(CaptchaProperties properties, CaptchaSessionStoreService captchaStoreService) {
         this.properties = properties;
+        this.captchaStoreService = captchaStoreService;
     }
 
     /**
@@ -82,7 +81,7 @@ public class ClickCaptchaService {
 
         // 6. 存入内存（带过期时间戳）
         long expireAt = System.currentTimeMillis() + properties.getExpiryTime().toMillis();
-        store.put(captchaId, new CaptchaSession(targetChars, targetPoints, expireAt));
+        captchaStoreService.put(captchaId, new CaptchaSession(targetChars, targetPoints, expireAt));
 
         // 7. 图片编码为 Base64
         String base64 = encodeBase64(image);
@@ -110,16 +109,16 @@ public class ClickCaptchaService {
             return false;
         }
         //1. 从会话存储中移除验证码会话数据
-        CaptchaSession session = store.remove(captchaId);
+        CaptchaSession session = captchaStoreService.remove(captchaId);
         if (session == null) {
             return false;
         }
         //2. 检查验证码是否已过期
-        if (System.currentTimeMillis() > session.expireAt) {
+        if (System.currentTimeMillis() > session.getExpireAt()) {
             return false;
         }
         //3. 检查点击目标数量是否一致
-        List<ClickPoint> targets = session.targetPoints;
+        List<ClickPoint> targets = session.getTargetPoints();
         if (clicks.size() != targets.size()) {
             return false;
         }
@@ -143,16 +142,8 @@ public class ClickCaptchaService {
      */
     public void invalidate(String captchaId) {
         if (captchaId != null) {
-            store.remove(captchaId);
+            captchaStoreService.remove(captchaId);
         }
-    }
-
-    /**
-     * 清理所有已过期的验证码记录（可由定时任务调用）
-     */
-    public void cleanExpired() {
-        long now = System.currentTimeMillis();
-        store.entrySet().removeIf(entry -> entry.getValue().expireAt < now);
     }
 
     // ------------------------------------------------------------------ internals
@@ -322,13 +313,5 @@ public class ClickCaptchaService {
         } catch (Exception e) {
             throw new RuntimeException("验证码图片编码失败", e);
         }
-    }
-
-    // ------------------------------------------------------------------ inner types
-
-    /**
-     * 验证码会话数据（存储在内存中）
-     */
-    private record CaptchaSession(List<String> targetChars, List<ClickPoint> targetPoints, long expireAt) {
     }
 }

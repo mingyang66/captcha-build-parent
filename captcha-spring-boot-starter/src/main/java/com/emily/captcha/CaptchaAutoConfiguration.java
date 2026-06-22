@@ -1,7 +1,10 @@
 package com.emily.captcha;
 
 import com.emily.captcha.click.service.ClickCaptchaService;
+import com.emily.captcha.click.store.CaptchaSessionStoreService;
+import com.emily.captcha.click.store.DefaultCaptchaSessionStoreServiceImpl;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -20,10 +23,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class CaptchaAutoConfiguration {
 
     @Bean
-    public ClickCaptchaService captchaService(CaptchaProperties properties) {
-        return new ClickCaptchaService(properties);
+    public ClickCaptchaService clickCaptchaService(CaptchaProperties properties, CaptchaSessionStoreService captchaStoreService) {
+        return new ClickCaptchaService(properties, captchaStoreService);
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public CaptchaSessionStoreService captchaSessionStoreService() {
+        return new DefaultCaptchaSessionStoreServiceImpl();
+    }
 
     /**
      * 定时清理过期验证码，每 60 秒执行一次
@@ -32,15 +40,15 @@ public class CaptchaAutoConfiguration {
     @EnableScheduling
     static class CaptchaCleanupConfiguration {
 
-        private final ClickCaptchaService captchaService;
+        private final CaptchaSessionStoreService storeService;
 
-        CaptchaCleanupConfiguration(ClickCaptchaService captchaService) {
-            this.captchaService = captchaService;
+        CaptchaCleanupConfiguration(CaptchaSessionStoreService storeService) {
+            this.storeService = storeService;
         }
 
         @Scheduled(fixedDelay = 60_000)
         public void cleanExpiredCaptcha() {
-            captchaService.cleanExpired();
+            storeService.cleanExpired();
         }
     }
 }
