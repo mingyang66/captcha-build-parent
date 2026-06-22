@@ -6,19 +6,37 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.emily.captcha</groupId>
+        <groupId>io.github.mingyang66</groupId>
         <artifactId>captcha-buld-parent</artifactId>
-        <version>1.0</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>captcha-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
     <name>captcha-spring-boot-starter</name>
+    <description>A simple Spring Boot starter for captcha service</description>
+    <url>https://github.com/mingyang66/captcha-spring-boot-starter</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Mingyang</name>
+            <email>mingyang66@foxmail.com</email>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/mingyang66/captcha-spring-boot-starter.git</connection>
+        <developerConnection>scm:git:https://github.com/mingyang66/captcha-spring-boot-starter.git</developerConnection>
+        <url>https://github.com/mingyang66/captcha-spring-boot-starter</url>
+    </scm>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -31,5 +49,4 @@
             <optional>true</optional>
         </dependency>
     </dependencies>
-
 </project>

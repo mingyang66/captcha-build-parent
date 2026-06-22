@@ -5,12 +5,14 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.emily.captcha</groupId>
+    <groupId>io.github.mingyang66</groupId>
     <artifactId>captcha-buld-parent</artifactId>
-    <version>1.0</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <name>captcha-buld-parent</name>
+    <description>A simple Spring Boot starter for captcha service</description>
+    <url>https://github.com/mingyang66/captcha-spring-boot-starter</url>
 
     <modules>
         <module>captcha-spring-boot-starter</module>
@@ -18,12 +20,35 @@
     </modules>
 
     <properties>
+        <revision>1.0.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <spring-boot.version>4.1.0</spring-boot.version>
+        <flatten-maven-plugin.version>1.7.3</flatten-maven-plugin.version>
+        <central-publishing-maven-plugin.version>0.10.0</central-publishing-maven-plugin.version>
+        <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+        <maven-javadoc-plugin.version>3.10.1</maven-javadoc-plugin.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
     </properties>
-
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Mingyang</name>
+            <email>mingyang66@foxmail.com</email>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/mingyang66/captcha-spring-boot-starter.git</connection>
+        <developerConnection>scm:git:https://github.com/mingyang66/captcha-spring-boot-starter.git</developerConnection>
+        <url>https://github.com/mingyang66/captcha-spring-boot-starter</url>
+    </scm>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -36,13 +61,122 @@
         </dependencies>
     </dependencyManagement>
 
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.13.2</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>${central-publishing-maven-plugin.version}</version> <!-- 请检查是否有更新版本 -->
+                <extensions>true</extensions>
+                <configuration>
+                    <!-- 必须与 settings.xml 中的 server ID 一致 -->
+                    <publishingServerId>central-portal</publishingServerId>
+
+                    <!-- 关键配置：设置为 false，这样构建时会停下来让你去网页确认 -->
+                    <!-- 设置为 true 则会自动发布（不推荐初学者使用） -->
+                    <autoPublish>false</autoPublish>
+
+                    <!-- 等待状态，uploaded 表示上传到暂存库即可，无需自动发布 -->
+                    <waitUntil>uploaded</waitUntil>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <!--
+                      | 模式名称 | 解析所有属性? | 保留 CI 友好属性? | 保留自定义属性? | 推荐使用场景 |
+                      | `full` | ✅ 是 | ❌ 否 | ❌ 否 | 需要完全静态的 POM 文件，或解决版本号未解析的报错。 |
+                      | `oss` | ✅ 是 | ✅ 是 | ❌ 否 | 发布到 Maven Central 仓库，需要兼容 CI 友好变量。 |
+                      | `resolveCiFriendliesOnly` | ❌ 否 | ✅ 是 | ✅ 是 | 仅替换 CI 友好变量，保留其他所有属性原样。 |
+                    -->
+                    <flattenMode>oss</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- 使用GnuPG签署项目的所有附加工件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>${maven-gpg-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <!--使用GunPG对项目工件、POM和附加工件进行签名以进行部署-->
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- 生成源码插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven-source-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!--构建过程中生成源码包，并将其附加到maven项目中-->
+                    <!-- <attach>true</attach>-->
+                    <!--<classifier>tests</classifier>-->
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <!--Maven编译后保留方法名-->
+                    <parameters>true</parameters>
+                </configuration>
+            </plugin>
+            <!-- 生成API文档插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc-plugin.version}</version>
+                <configuration>
+                    <!--控制构建过程中如果出现错误是否停止构建-->
+                    <failOnError>false</failOnError>
+                    <!--排除指定的包，可以使用: or , or ; 三种符号分割-->
+                    <excludePackageNames>com.emily.cloud.test.*,com.emily.infrastructure.test.*
+                    </excludePackageNames>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

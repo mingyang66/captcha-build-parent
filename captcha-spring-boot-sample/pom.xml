@@ -6,9 +6,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.emily.captcha</groupId>
+        <groupId>io.github.mingyang66</groupId>
         <artifactId>captcha-buld-parent</artifactId>
-        <version>1.0</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>captcha-spring-boot-sample</artifactId>
@@ -21,7 +21,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.emily.captcha</groupId>
+            <groupId>io.github.mingyang66</groupId>
             <artifactId>captcha-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
