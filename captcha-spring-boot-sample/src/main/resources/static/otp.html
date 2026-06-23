@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>OTP双因子认证</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            padding: 36px 32px 28px;
+            width: 520px;
+            max-width: 100%;
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .card-header h2 {
+            font-size: 22px;
+            color: #333;
+            font-weight: 700;
+        }
+        .card-header p {
+            font-size: 13px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        /* 导航链接 */
+        .nav-links {
+            text-align: center;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* 表单区域 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e2e2;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* 按钮行 */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { background: #f5f5f5; color: #666; }
+        .btn-secondary:hover { background: #ebebeb; }
+        .btn-success { background: #10b981; color: #fff; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-danger:hover { background: #dc2626; }
+
+        /* 状态卡片 */
+        .status-card {
+            margin: 20px 0;
+            padding: 16px;
+            border-radius: 10px;
+            border: 2px solid #e2e2e2;
+            background: #fafafa;
+        }
+        .status-card.enabled {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        .status-card.disabled {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        .status-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .status-card p {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* 密钥显示 */
+        .secret-box {
+            margin: 16px 0;
+            padding: 16px;
+            background: #f0f4ff;
+            border-radius: 10px;
+            border: 2px solid #dde3ff;
+            display: none;
+        }
+        .secret-box.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        .secret-box h4 {
+            font-size: 14px;
+            color: #4a5acf;
+            margin-bottom: 8px;
+        }
+        .secret-code {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            background: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            letter-spacing: 2px;
+            word-break: break-all;
+            margin: 8px 0;
+        }
+        .secret-uri {
+            font-size: 11px;
+            color: #666;
+            word-break: break-all;
+            margin-top: 8px;
+            padding: 8px;
+            background: #fff;
+            border-radius: 6px;
+        }
+
+        /* QR码区域 */
+        .qr-section {
+            margin: 20px 0;
+            text-align: center;
+            display: none;
+        }
+        .qr-section.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        .qr-section h4 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        .qr-code {
+            display: inline-block;
+            padding: 16px;
+            background: #fff;
+            border-radius: 10px;
+            border: 2px solid #e2e2e2;
+        }
+        .qr-code img {
+            display: block;
+        }
+
+        /* OTP验证区域 */
+        .verify-section {
+            margin: 20px 0;
+            display: none;
+        }
+        .verify-section.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        .verify-section h4 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        /* 结果提示 */
+        .toast {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            0%   { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .toast.show   { display: block; }
+        .toast.ok     { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+        .toast.err    { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .toast.info   { background: #eef2ff; color: #4a5acf; border: 1px solid #dde3ff; }
+
+        /* 加载遮罩 */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .loading-overlay.show {
+            display: flex;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 说明文字 */
+        .help-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+            line-height: 1.6;
+        }
+        .help-text ol {
+            padding-left: 20px;
+        }
+        .help-text li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="nav-links">
+        <a href="index.html">&larr; 返回文字点选验证码</a>
+        <a href="slider.html">前往滑动解锁验证码</a>
+        <a href="rotate.html">前往旋转验证码</a>
+    </div>
+
+    <div class="card-header">
+        <h2>OTP 双因子认证</h2>
+        <p>基于时间的一次性密码（TOTP），兼容 Google Authenticator</p>
+    </div>
+
+    <!-- 账户输入 -->
+    <div class="form-group">
+        <label for="accountInput">账户标识（邮箱或用户名）</label>
+        <input type="text" id="accountInput" placeholder="例如：user@example.com" />
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="btn-row">
+        <button class="btn btn-primary" id="generateBtn">生成密钥</button>
+        <button class="btn btn-secondary" id="checkBtn">检查状态</button>
+    </div>
+
+    <!-- 状态卡片 -->
+    <div class="status-card" id="statusCard" style="display: none;">
+        <h3 id="statusTitle">OTP状态</h3>
+        <p id="statusDesc"></p>
+    </div>
+
+    <!-- 密钥显示 -->
+    <div class="secret-box" id="secretBox">
+        <h4>🔑 您的OTP密钥</h4>
+        <div class="secret-code" id="secretCode"></div>
+        <p class="help-text">请安全保存此密钥，用于在验证器应用中添加账户</p>
+        <div class="secret-uri" id="secretUri"></div>
+    </div>
+
+    <!-- QR码区域 -->
+    <div class="qr-section" id="qrSection">
+        <h4>📱 扫描二维码添加账户</h4>
+        <div class="qr-code">
+            <img id="qrImage" src="" alt="QR Code" width="200" height="200"/>
+        </div>
+        <p class="help-text">使用 Google Authenticator 或其他OTP应用扫描此二维码</p>
+    </div>
+
+    <!-- OTP验证区域 -->
+    <div class="verify-section" id="verifySection">
+        <h4>🔐 验证OTP密码</h4>
+        <div class="form-group">
+            <label for="otpInput">6位OTP密码</label>
+            <input type="text" id="otpInput" placeholder="输入验证器应用中的6位数字" maxlength="6" />
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-success" id="verifyOtpBtn">验证OTP</button>
+            <button class="btn btn-danger" id="removeOtpBtn">删除OTP</button>
+        </div>
+    </div>
+
+    <!-- 结果提示 -->
+    <div class="toast" id="toast"></div>
+</div>
+
+<!-- 加载遮罩 -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // ── 常量 ──
+    const API = 'http://127.0.0.1:8080/api/captcha/otp';
+    const QR_API = 'https://api.qrserver.com/v1/create-qr-code/';
+
+    // ── DOM ──
+    const accountInput   = document.getElementById('accountInput');
+    const generateBtn    = document.getElementById('generateBtn');
+    const checkBtn       = document.getElementById('checkBtn');
+    const statusCard     = document.getElementById('statusCard');
+    const statusTitle    = document.getElementById('statusTitle');
+    const statusDesc     = document.getElementById('statusDesc');
+    const secretBox      = document.getElementById('secretBox');
+    const secretCode     = document.getElementById('secretCode');
+    const secretUri      = document.getElementById('secretUri');
+    const qrSection      = document.getElementById('qrSection');
+    const qrImage        = document.getElementById('qrImage');
+    const verifySection  = document.getElementById('verifySection');
+    const otpInput       = document.getElementById('otpInput');
+    const verifyOtpBtn   = document.getElementById('verifyOtpBtn');
+    const removeOtpBtn   = document.getElementById('removeOtpBtn');
+    const toast          = document.getElementById('toast');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    // ── 工具函数 ──
+    function showLoading(show) {
+        loadingOverlay.className = show ? 'loading-overlay show' : 'loading-overlay';
+    }
+
+    function showToast(msg, type) {
+        toast.textContent = msg;
+        toast.className = 'toast show ' + type;
+        setTimeout(function() {
+            toast.className = 'toast';
+        }, 3000);
+    }
+
+    function getAccount() {
+        const account = accountInput.value.trim();
+        if (!account) {
+            showToast('请输入账户标识', 'err');
+            return null;
+        }
+        return account;
+    }
+
+    // ── 生成密钥 ──
+    async function generateSecret() {
+        const account = getAccount();
+        if (!account) return;
+
+        showLoading(true);
+        try {
+            const resp = await fetch(API + '/secret?account=' + encodeURIComponent(account), {
+                method: 'POST'
+            });
+            const json = await resp.json();
+
+            if (json.code === 200 && json.data) {
+                const d = json.data;
+                
+                // 显示密钥
+                secretCode.textContent = d.secret;
+                secretUri.textContent = 'OTP Auth URI: ' + d.otpAuthUri;
+                secretBox.className = 'secret-box show';
+
+                // 生成QR码
+                const qrUrl = QR_API + '?size=200x200&data=' + encodeURIComponent(d.otpAuthUri);
+                qrImage.src = qrUrl;
+                qrSection.className = 'qr-section show';
+
+                // 显示验证区域
+                verifySection.className = 'verify-section show';
+
+                // 更新状态卡片
+                statusCard.className = 'status-card enabled';
+                statusCard.style.display = 'block';
+                statusTitle.textContent = '✅ OTP已启用';
+                statusDesc.textContent = '账户 ' + account + ' 的OTP已成功生成。请使用验证器应用扫描二维码或手动输入密钥。';
+
+                showToast('OTP密钥生成成功！', 'ok');
+            } else {
+                showToast(json.message || '生成失败', 'err');
+            }
+        } catch (e) {
+            showToast('网络错误，请重试', 'err');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // ── 检查状态 ──
+    async function checkStatus() {
+        const account = getAccount();
+        if (!account) return;
+
+        showLoading(true);
+        try {
+            const resp = await fetch(API + '/enabled?account=' + encodeURIComponent(account));
+            const json = await resp.json();
+
+            if (json.code === 200 && json.data) {
+                const enabled = json.data.enabled;
+                
+                statusCard.style.display = 'block';
+                
+                if (enabled) {
+                    statusCard.className = 'status-card enabled';
+                    statusTitle.textContent = '✅ OTP已启用';
+                    statusDesc.textContent = '账户 ' + account + ' 已启用OTP双因子认证。';
+                    verifySection.className = 'verify-section show';
+                    secretBox.className = 'secret-box';
+                    qrSection.className = 'qr-section';
+                } else {
+                    statusCard.className = 'status-card disabled';
+                    statusTitle.textContent = '❌ OTP未启用';
+                    statusDesc.textContent = '账户 ' + account + ' 尚未启用OTP。请点击"生成密钥"开始配置。';
+                    verifySection.className = 'verify-section';
+                    secretBox.className = 'secret-box';
+                    qrSection.className = 'qr-section';
+                }
+
+                showToast('状态检查完成', 'info');
+            } else {
+                showToast(json.message || '检查失败', 'err');
+            }
+        } catch (e) {
+            showToast('网络错误，请重试', 'err');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // ── 验证OTP ──
+    async function verifyOtp() {
+        const account = getAccount();
+        if (!account) return;
+
+        const otp = otpInput.value.trim();
+        if (!otp || otp.length !== 6) {
+            showToast('请输入6位OTP密码', 'err');
+            return;
+        }
+
+        showLoading(true);
+        try {
+            const resp = await fetch(API + '/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account: account, otp: otp })
+            });
+            const json = await resp.json();
+
+            if (json.code === 200) {
+                showToast('✅ ' + (json.message || '验证通过！'), 'ok');
+                otpInput.value = '';
+            } else {
+                showToast('❌ ' + (json.message || '验证失败'), 'err');
+            }
+        } catch (e) {
+            showToast('网络错误，请重试', 'err');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // ── 删除OTP ──
+    async function removeOtp() {
+        const account = getAccount();
+        if (!account) return;
+
+        if (!confirm('确定要删除账户 ' + account + ' 的OTP配置吗？此操作不可恢复。')) {
+            return;
+        }
+
+        showLoading(true);
+        try {
+            const resp = await fetch(API + '/remove?account=' + encodeURIComponent(account), {
+                method: 'POST'
+            });
+            const json = await resp.json();
+
+            if (json.code === 200) {
+                showToast('OTP已删除', 'ok');
+                
+                // 重置界面
+                statusCard.className = 'status-card disabled';
+                statusCard.style.display = 'block';
+                statusTitle.textContent = '❌ OTP未启用';
+                statusDesc.textContent = '账户 ' + account + ' 的OTP配置已删除。';
+                verifySection.className = 'verify-section';
+                secretBox.className = 'secret-box';
+                qrSection.className = 'qr-section';
+                otpInput.value = '';
+            } else {
+                showToast(json.message || '删除失败', 'err');
+            }
+        } catch (e) {
+            showToast('网络错误，请重试', 'err');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // ── 事件绑定 ──
+    generateBtn.addEventListener('click', generateSecret);
+    checkBtn.addEventListener('click', checkStatus);
+    verifyOtpBtn.addEventListener('click', verifyOtp);
+    removeOtpBtn.addEventListener('click', removeOtp);
+
+    // 回车键验证OTP
+    otpInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            verifyOtp();
+        }
+    });
+
+    // 自动检查状态（如果已有账户）
+    accountInput.addEventListener('blur', function() {
+        if (accountInput.value.trim()) {
+            checkStatus();
+        }
+    });
+})();
+</script>
+</body>
+</html>
