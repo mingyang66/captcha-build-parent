@@ -132,24 +132,47 @@ public Map<String, Object> verify(@RequestBody VerifyRequest request) {
 
 ### 配置项
 
+> **配置路径规则**：所有配置以 `spring.emily.captcha` 为前缀，通过 `.click` / `.slider` / `.rotate` 区分验证码类型。
+
+#### 文字点选验证码配置
+
 ```properties
-# 图片尺寸
+# ========== 图片尺寸 ==========
+# 验证码图片宽度（像素），默认 320
 spring.emily.captcha.click.width=320
+# 验证码图片高度（像素），默认 160
 spring.emily.captcha.click.height=160
-# 字符总数 & 需点击的目标数
+
+# ========== 字符配置 ==========
+# 图片中随机生成的字符总数，默认 5
 spring.emily.captcha.click.char-count=5
+# 需要用户按顺序点击的目标字符数量，默认 3（必须 <= char-count）
 spring.emily.captcha.click.target-count=3
-# 字体大小范围
+
+# ========== 字体配置 ==========
+# 字体最小尺寸（像素），默认 22
 spring.emily.captcha.click.font-size-min=22
+# 字体最大尺寸（像素），默认 30（字符会在此范围内随机大小）
 spring.emily.captcha.click.font-size-max=30
-# 干扰元素
+
+# ========== 干扰元素 ==========
+# 干扰线数量，默认 6（用于增加识别难度）
 spring.emily.captcha.click.noise-line-count=6
+# 干扰点数量，默认 30（随机噪点）
 spring.emily.captcha.click.noise-point-count=30
-# 点击容差（像素）
+
+# ========== 验证参数 ==========
+# 点击容差（像素），判定点击是否命中字符中心，默认 20
+# 值越大越容易通过，值越小验证越严格
 spring.emily.captcha.click.tolerance=20
-# 过期时间
+
+# ========== 过期时间 ==========
+# 验证码有效期（ISO-8601 Duration 格式），默认 PT120S（120秒）
+# 常用值：PT60S（60秒）、PT2M（2分钟）、PT5M（5分钟）
 spring.emily.captcha.click.expiry-time=PT120S
 ```
+
+> **注意**：`font-size-max` 建议 >= `font-size-min`，否则字体大小会固定为 `font-size-max`。
 
 ---
 
@@ -245,16 +268,28 @@ public Map<String, Object> sliderVerify(@RequestBody SliderVerifyRequest request
 
 ### 配置项
 
+#### 滑动解锁验证码配置
+
 ```properties
-# 背景图尺寸
+# ========== 图片尺寸 ==========
+# 背景图宽度（像素），默认 320
 spring.emily.captcha.slider.width=320
+# 背景图高度（像素），默认 160
 spring.emily.captcha.slider.height=160
-# X 坐标容差（像素）
-spring.emily.captcha.slider.tolerance=5
-# 干扰元素
+
+# ========== 干扰元素 ==========
+# 干扰线数量，默认 6
 spring.emily.captcha.slider.noise-line-count=6
+# 干扰点数量，默认 30
 spring.emily.captcha.slider.noise-point-count=30
-# 过期时间
+
+# ========== 验证参数 ==========
+# X 坐标容差（像素），判定拼图块是否对齐缺口，默认 5
+# 值越大越容易通过，建议 3~10 之间
+spring.emily.captcha.slider.tolerance=5
+
+# ========== 过期时间 ==========
+# 验证码有效期，默认 PT120S（120秒）
 spring.emily.captcha.slider.expiry-time=PT120S
 ```
 
@@ -351,18 +386,33 @@ public Map<String, Object> rotateVerify(@RequestBody RotateVerifyRequest request
 
 ### 配置项
 
+#### 旋转验证码配置
+
 ```properties
-# 圆形图片尺寸（像素）
+# ========== 图片尺寸 ==========
+# 圆形图片尺寸（像素，宽高相同），默认 200
 spring.emily.captcha.rotate.size=200
-# 随机旋转角度范围
+
+# ========== 角度配置 ==========
+# 随机旋转的最小角度（度），默认 30
 spring.emily.captcha.rotate.min-angle=30
+# 随机旋转的最大角度（度），默认 330
+# 图片会在此范围内随机旋转一个角度，用户需反向旋转回来
 spring.emily.captcha.rotate.max-angle=330
-# 角度容差（度）
-spring.emily.captcha.rotate.tolerance=10
-# 干扰元素
+
+# ========== 干扰元素 ==========
+# 干扰线数量，默认 4
 spring.emily.captcha.rotate.noise-line-count=4
+# 干扰点数量，默认 20
 spring.emily.captcha.rotate.noise-point-count=20
-# 过期时间
+
+# ========== 验证参数 ==========
+# 角度容差（度），判定用户旋转角度是否正确，默认 10
+# 实际角度差值 <= tolerance 即验证通过
+spring.emily.captcha.rotate.tolerance=10
+
+# ========== 过期时间 ==========
+# 验证码有效期，默认 PT120S（120秒）
 spring.emily.captcha.rotate.expiry-time=PT120S
 ```
 
@@ -371,11 +421,12 @@ spring.emily.captcha.rotate.expiry-time=PT120S
 ## 全局配置
 
 ```properties
-# 总开关（默认 true）
+# 验证码总开关（默认 true）
+# 设置为 false 时，所有验证码 Bean 均不会注册，相当于禁用整个验证码模块
 spring.emily.captcha.enabled=true
 ```
 
-当 `enabled=false` 时，所有验证码 Bean 均不会注册。
+> **说明**：`enabled` 是全局控制参数，优先级高于各子类型配置。当 `enabled=false` 时，即使配置了 `.click` / `.slider` / `.rotate` 相关参数也不会生效。
 
 ## 自定义存储实现
 
