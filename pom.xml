@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.mingyang66</groupId>
-    <artifactId>captcha-buld-parent</artifactId>
+    <artifactId>captcha-build-parent</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
 
