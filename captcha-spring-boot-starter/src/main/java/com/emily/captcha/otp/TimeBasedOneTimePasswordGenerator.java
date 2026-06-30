@@ -1,9 +1,6 @@
-package com.emily.captcha.otp.service;
+package com.emily.captcha.otp;
 
 import com.emily.captcha.CaptchaProperties;
-import com.emily.captcha.otp.OtpAlgorithm;
-import com.emily.captcha.otp.OtpHashAlgorithm;
-import com.emily.captcha.otp.OtpSecretGenerator;
 import com.emily.captcha.otp.store.OtpSession;
 import com.emily.captcha.otp.store.OtpStoreService;
 
@@ -16,7 +13,7 @@ import java.util.Objects;
  * <p>
  * 基于 RFC 6238 (TOTP) 标准实现，兼容Google Authenticator、Microsoft Authenticator等应用
  */
-public class OtpService {
+public class TimeBasedOneTimePasswordGenerator {
 
     /**
      * 验证码配置属性
@@ -27,7 +24,7 @@ public class OtpService {
      */
     private final OtpStoreService otpStoreService;
 
-    public OtpService(CaptchaProperties properties, OtpStoreService otpStoreService) {
+    public TimeBasedOneTimePasswordGenerator(CaptchaProperties properties, OtpStoreService otpStoreService) {
         this.properties = properties;
         this.otpStoreService = otpStoreService;
     }

@@ -7,7 +7,7 @@ import com.emily.captcha.rotate.model.RotateCaptcha;
 import com.emily.captcha.rotate.service.RotateCaptchaService;
 import com.emily.captcha.slider.model.SliderCaptcha;
 import com.emily.captcha.slider.service.SliderCaptchaService;
-import com.emily.captcha.otp.service.OtpService;
+import com.emily.captcha.otp.TimeBasedOneTimePasswordGenerator;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,12 +27,12 @@ public class CaptchaController {
     private final ClickCaptchaService captchaService;
     private final SliderCaptchaService sliderCaptchaService;
     private final RotateCaptchaService rotateCaptchaService;
-    private final OtpService otpService;
+    private final TimeBasedOneTimePasswordGenerator otpService;
 
     public CaptchaController(ClickCaptchaService captchaService,
                              SliderCaptchaService sliderCaptchaService,
                              RotateCaptchaService rotateCaptchaService,
-                             OtpService otpService) {
+                             TimeBasedOneTimePasswordGenerator otpService) {
         this.captchaService = captchaService;
         this.sliderCaptchaService = sliderCaptchaService;
         this.rotateCaptchaService = rotateCaptchaService;
