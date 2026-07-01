@@ -1,5 +1,6 @@
 package com.emily.captcha;
 
+import com.emily.captcha.otp.OtpAlgorithm;
 import com.emily.captcha.otp.OtpHashAlgorithm;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -398,21 +399,23 @@ public class CaptchaProperties {
         private Duration timeStep = Duration.ofSeconds(30);
 
         /**
-         * 允许的时间窗口偏移（默认1），用于处理时钟不同步
+         * 允许的时间窗口偏移（默认3），用于处理时钟不同步
          */
         private int windowSize = 1;
 
         /**
-         * 密钥长度（字节），默认20字节（160位）
+         * 密钥长度（字节），默认32字节（256位）
+         * <p>
+         * RFC 6238 推荐值：SHA1=20, SHA256=32, SHA512=64
          */
         private int secretKeyLength = 20;
 
         /**
-         * 哈希算法（默认HMAC_SHA1）
+         * 哈希算法（默认HMAC_SHA256）
          * <p>
          * 可选值：HMAC_SHA1, HMAC_SHA256, HMAC_SHA512
          */
-        private OtpHashAlgorithm algorithm = OtpHashAlgorithm.HMAC_SHA256;
+        private OtpHashAlgorithm algorithm = OtpHashAlgorithm.HMAC_SHA1;
 
         public int getCodeLength() {
             return codeLength;

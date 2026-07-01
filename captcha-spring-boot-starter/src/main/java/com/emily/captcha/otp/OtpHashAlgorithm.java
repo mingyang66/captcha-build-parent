@@ -17,21 +17,21 @@ public enum OtpHashAlgorithm {
      * <p>
      * 默认算法，兼容性最好，所有OTP应用都支持
      */
-    HMAC_SHA1("HmacSHA1", "SHA1"),
+    HMAC_SHA1("HmacSHA1", "SHA1", 20),
 
     /**
      * HMAC-SHA256 算法
      * <p>
      * 更强的安全性，部分OTP应用支持
      */
-    HMAC_SHA256("HmacSHA256", "SHA256"),
+    HMAC_SHA256("HmacSHA256", "SHA256", 32),
 
     /**
      * HMAC-SHA512 算法
      * <p>
      * 最高安全性，少数OTP应用支持
      */
-    HMAC_SHA512("HmacSHA512", "SHA512");
+    HMAC_SHA512("HmacSHA512", "SHA512", 64);
 
     /**
      * Java加密算法名称（用于Mac.getInstance()）
@@ -43,9 +43,15 @@ public enum OtpHashAlgorithm {
      */
     private final String uriAlgorithm;
 
-    OtpHashAlgorithm(String javaAlgorithm, String uriAlgorithm) {
+    /**
+     * RFC 6238 推荐的密钥长度（字节）
+     */
+    private final int recommendedKeyLength;
+
+    OtpHashAlgorithm(String javaAlgorithm, String uriAlgorithm, int recommendedKeyLength) {
         this.javaAlgorithm = javaAlgorithm;
         this.uriAlgorithm = uriAlgorithm;
+        this.recommendedKeyLength = recommendedKeyLength;
     }
 
     /**
@@ -64,6 +70,15 @@ public enum OtpHashAlgorithm {
      */
     public String getUriAlgorithm() {
         return uriAlgorithm;
+    }
+
+    /**
+     * 获取RFC 6238推荐的密钥长度
+     *
+     * @return 密钥长度（字节）
+     */
+    public int getRecommendedKeyLength() {
+        return recommendedKeyLength;
     }
 
     /**

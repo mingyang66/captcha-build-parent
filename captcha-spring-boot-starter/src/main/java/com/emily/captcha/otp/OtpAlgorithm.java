@@ -116,8 +116,8 @@ public class OtpAlgorithm {
 
         for (int i = -windowSize; i <= windowSize; i++) {
             long adjustedTime = (currentTimeCounter + i) * timeStep * 1000;
-            String generatedOtp = generateTotp(secret, adjustedTime, timeStep, codeLength, algorithm);
-
+            String generatedOtp = generateTotp(secret, adjustedTime, timeStep, codeLength, OtpHashAlgorithm.HMAC_SHA1);
+            System.out.println(otp + "---" + generatedOtp);
             if (Objects.equals(otp, generatedOtp)) {
                 return true;
             }

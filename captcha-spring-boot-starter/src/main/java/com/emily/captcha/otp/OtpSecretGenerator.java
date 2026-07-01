@@ -46,6 +46,8 @@ public class OtpSecretGenerator {
 
     /**
      * 将字节数组编码为Base32字符串
+     * <p>
+     * 遵循 RFC 4648 标准，包含填充字符（=）
      *
      * @param bytes 字节数组
      * @return Base32编码字符串
@@ -69,11 +71,17 @@ public class OtpSecretGenerator {
             sb.append(BASE32_CHARS.charAt((buffer << (5 - bufferLength)) & 0x1F));
         }
 
+        while (sb.length() % 8 != 0) {
+            sb.append('=');
+        }
+
         return sb.toString();
     }
 
     /**
      * 将Base32字符串解码为字节数组
+     * <p>
+     * 兼容带填充字符（=）和不带填充字符的Base32字符串
      *
      * @param base32 Base32编码字符串
      * @return 字节数组
@@ -83,8 +91,11 @@ public class OtpSecretGenerator {
             throw new IllegalArgumentException("Base32字符串不能为空");
         }
 
-        // 移除空格和连字符
-        base32 = base32.toUpperCase().replaceAll("[\\s-]", "");
+        base32 = base32.toUpperCase().replaceAll("[\\s\\-=]", "");
+
+        if (base32.isEmpty()) {
+            throw new IllegalArgumentException("Base32字符串解码后为空");
+        }
 
         int buffer = 0;
         int bufferLength = 0;
@@ -92,7 +103,8 @@ public class OtpSecretGenerator {
         byte[] bytes = new byte[byteCount];
         int byteIndex = 0;
 
-        for (char c : base32.toCharArray()) {
+        for (int i = 0; i < base32.length(); i++) {
+            char c = base32.charAt(i);
             int value = BASE32_CHARS.indexOf(c);
             if (value < 0) {
                 throw new IllegalArgumentException("无效的Base32字符: " + c);
@@ -105,6 +117,12 @@ public class OtpSecretGenerator {
                 bufferLength -= 8;
                 bytes[byteIndex++] = (byte) ((buffer >> bufferLength) & 0xFF);
             }
+        }
+
+        if (byteIndex < bytes.length) {
+            byte[] result = new byte[byteIndex];
+            System.arraycopy(bytes, 0, result, 0, byteIndex);
+            return result;
         }
 
         return bytes;

@@ -13,7 +13,7 @@ import java.util.Objects;
  * <p>
  * 基于 RFC 6238 (TOTP) 标准实现，兼容Google Authenticator、Microsoft Authenticator等应用
  */
-public class TimeBasedOneTimePasswordGenerator {
+public class OtpGenerator {
 
     /**
      * 验证码配置属性
@@ -24,7 +24,7 @@ public class TimeBasedOneTimePasswordGenerator {
      */
     private final OtpStoreService otpStoreService;
 
-    public TimeBasedOneTimePasswordGenerator(CaptchaProperties properties, OtpStoreService otpStoreService) {
+    public OtpGenerator(CaptchaProperties properties, OtpStoreService otpStoreService) {
         this.properties = properties;
         this.otpStoreService = otpStoreService;
     }

@@ -3,7 +3,7 @@ package com.emily.captcha;
 import com.emily.captcha.click.service.ClickCaptchaService;
 import com.emily.captcha.click.store.ClickStoreService;
 import com.emily.captcha.click.store.DefaultClickStoreServiceImpl;
-import com.emily.captcha.otp.TimeBasedOneTimePasswordGenerator;
+import com.emily.captcha.otp.OtpGenerator;
 import com.emily.captcha.otp.store.DefaultOtpStoreServiceImpl;
 import com.emily.captcha.otp.store.OtpStoreService;
 import com.emily.captcha.rotate.service.RotateCaptchaService;
@@ -65,8 +65,8 @@ public class CaptchaAutoConfiguration {
     }
 
     @Bean
-    public TimeBasedOneTimePasswordGenerator otpService(CaptchaProperties properties, OtpStoreService otpStoreService) {
-        return new TimeBasedOneTimePasswordGenerator(properties, otpStoreService);
+    public OtpGenerator otpService(CaptchaProperties properties, OtpStoreService otpStoreService) {
+        return new OtpGenerator(properties, otpStoreService);
     }
 
     @Bean
